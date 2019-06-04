@@ -80,7 +80,47 @@ def BIO_labeling(json_file_path, mapping_dict):
                 # 没有匹配到处理下一个
                 pass
         print(f'标注后的数据{BIO_labeling_result}')
+    return BIO_labeling_result_list
 
+def BIO_Output(BIO_labeling_result_list,trainFilePath,verifyFilePath,testFilePath):
+    """将所有数据项标注后的结果写入文件"""
+    #查看本次需要处理的数据项总数
+    item_num = len(BIO_labeling_result_list)
+    train_set_len = math.ceil(item_num*0.7)
+    verify_set_len = math.ceil(item_num * 0.2)
+    test_set_len = item_num-train_set_len-verify_set_len
+
+    #输出配置字典
+    outputSettings = {}
+    outputSettings[trainFilePath] = train_set_len
+    outputSettings[verifyFilePath] = verify_set_len
+    outputSettings[testFilePath] = test_set_len
+
+    #文件输出时第一个数据项在BIO_labeling_result_list中的位置
+    start = 0
+
+    for filePath in outputSettings.keys():
+        #此文件输出的最后一个数据项的位置+1
+        end = start + outputSettings[filePath]
+        with open(file=filePath,mode='w',encoding='utf-8') as f:
+
+            #遍历指定区域的数据项
+            for BIO_labeling_result in BIO_labeling_result_list[start : end]:
+                for char_dict in BIO_labeling_result:
+                    #字符值
+                    key = list(char_dict.keys())[0]
+
+                    #字符标注
+                    value = char_dict[key]
+
+                    #输出到文件中的一行
+                    single_line = key + ' ' + value + '\n'
+                    f.write(single_line)
+                #一个数据项输出完毕后加分割符
+                f.write('\n')
+
+        #下一个文件输出的第一个数据项的位置
+        start = end
 
 def Prop_CN_to_EN_Mapping(map_file_path):
 
@@ -135,7 +175,8 @@ def ParsePropMappingFile(mappingFilePath, id_to_tag_filePath, file_to_id_filePat
 
 
 if __name__ == '__main__':
-    # test = Prop_CN_to_EN_Mapping('data/PropMappingFile_zh-cn=en.txt')
-    # BIO_labeling('data/data_outcome.json',test)
-    ParsePropMappingFile('data/PropMappingFile_zh-cn=en.txt','id_to_tag.txt','tag_to_id.txt')
+    # ParsePropMappingFile('data/PropMappingFile_zh-cn=en.txt','id_to_tag.txt','tag_to_id.txt')
+    mapping_dict = Prop_CN_to_EN_Mapping('data/PropMappingFile_zh-cn=en.txt')
+    BIO_labeling_result_list = BIO_labeling('data/data_outcome.json',mapping_dict)
+    BIO_Output(BIO_labeling_result_list,'train.txt','verify.txt','testing.txt')
 
